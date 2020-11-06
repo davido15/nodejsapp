@@ -1,7 +1,8 @@
 //  OpenShift sample Node application
 var express = require('express'),
     app     = express();
-  
+    
+const mysql = require('mysql'); 
     
 Object.assign=require('object-assign')
 
