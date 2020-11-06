@@ -92,13 +92,14 @@ conn.connect((err) =>{
 
 app.get('/', (req, res) => res.send('Hello World!!!!!'))
 
+
 app.get('/api/converter', (req, res) => {
   
   let sql = "SELECT * FROM digital";
   let query = conn.query(sql, (err, results) => {
-    if(err) throw err;
-    res.send(results)
-    console.log(results)
+    if(err) return res.send(err);
+    res.send(results);
+    console.log(results);
     });
 
 
