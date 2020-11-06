@@ -75,7 +75,7 @@ var initDb = function(callback) {
 
 const conn = mysql.createConnection({
  
-  host: 'mysql-1-sg2nr',
+  host: 'localhost',
   port:  '3306',
   user:  'newuser',
   password: 'password',
