@@ -71,6 +71,24 @@ var initDb = function(callback) {
     console.log('Connected to MongoDB at: %s', mongoURL);
   });
 };
+
+const conn = mysql.createConnection({
+ 
+  host: process.env.OPENSHIFT_MYSQL_DB_HOST || 'localhost',
+  port: process.env.OPENSHIFT_MYSQL_DB_PORT || '3306',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS ||  '',
+  database: 'digital_store' ,
+
+});
+ 
+//connect to database
+conn.connect((err) =>{
+  if(err) return err;
+  console.log('Mysql Connected...');
+})
+
+
 app.get('/', (req, res) => res.send('Hello World!!!!!'))
 
 // error handling
