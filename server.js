@@ -77,8 +77,8 @@ const conn = mysql.createConnection({
  
   host: process.env.OPENSHIFT_MYSQL_DB_HOST || 'mysql',
   port: process.env.OPENSHIFT_MYSQL_DB_PORT || '3306',
-  user: process.env.DB_USER || 'admin',
-  password: process.env.DB_PASS ||  'heroloop',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS ||  '',
   database: 'digital_store' ,
 
 });
