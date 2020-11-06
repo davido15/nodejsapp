@@ -1,7 +1,7 @@
 //  OpenShift sample Node application
 var express = require('express'),
     app     = express();
-    
+
 const mysql = require('mysql'); 
     
 Object.assign=require('object-assign')
@@ -91,6 +91,18 @@ conn.connect((err) =>{
 
 
 app.get('/', (req, res) => res.send('Hello World!!!!!'))
+
+app.get('/api/converter', (req, res) => {
+  
+  let sql = "SELECT * FROM digital";
+  let query = conn.query(sql, (err, results) => {
+    if(err) throw err;
+    res.send(results)
+    console.log(results)
+    });
+
+
+})
 
 // error handling
 app.use(function(err, req, res, next){
