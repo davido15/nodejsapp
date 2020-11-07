@@ -75,10 +75,10 @@ var initDb = function(callback) {
 
 const conn = mysql.createConnection({
  
-  host: 'mysql' || 'localhost' ||  'mysql-1-sg2nr' ,
-  port:  '3306',
-  user:  'newuser',
-  password: 'password',
+  host: process.env.OPENSHIFT_MYSQL_DB_HOST || 'localhost' ||  'mysql-1-sg2nr' ,
+  port: process.env.OPENSHIFT_MYSQL_DB_PORT,
+  user: process.env.OPENSHIFT_MYSQL_DB_USER,
+  password: process.env.OPENSHIFT_MYSQL_DB_PASS,
   database: 'digital_store' ,
 
 });
