@@ -1,22 +1,83 @@
 //  OpenShift sample Node application
 var express = require('express'),
   app = express();
-
-const mysql = require('mysql');
-const Joi = require('joi');
-const cors = require('cors');
+var mysql = require('mysql');
 
 Object.assign = require('object-assign')
 
 app.use(express.json());
+
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-  ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || 'localhost';
+  ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || 'localhost',
+  mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
+  mongoURLLabel = "";
+
+if (mongoURL == null) {
+  var mongoHost, mongoPort, mongoDatabase, mongoPassword, mongoUser;
+  // If using plane old env vars via service discovery
+  if (process.env.DATABASE_SERVICE_NAME) {
+    var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase();
+    mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'];
+    mongoPort = process.env[mongoServiceName + '_SERVICE_PORT'];
+    mongoDatabase = process.env[mongoServiceName + '_DATABASE'];
+    mongoPassword = process.env[mongoServiceName + '_PASSWORD'];
+    mongoUser = process.env[mongoServiceName + '_USER'];
+
+    // If using env vars from secret from service binding  
+  } else if (process.env.database_name) {
+    mongoDatabase = process.env.database_name;
+    mongoPassword = process.env.password;
+    mongoUser = process.env.username;
+    var mongoUriParts = process.env.uri && process.env.uri.split("//");
+    if (mongoUriParts.length == 2) {
+      mongoUriParts = mongoUriParts[1].split(":");
+      if (mongoUriParts && mongoUriParts.length == 2) {
+        mongoHost = mongoUriParts[0];
+        mongoPort = mongoUriParts[1];
+      }
+    }
+  }
+
+  if (mongoHost && mongoPort && mongoDatabase) {
+    mongoURLLabel = mongoURL = 'mongodb://';
+    if (mongoUser && mongoPassword) {
+      mongoURL += mongoUser + ':' + mongoPassword + '@';
+    }
+    // Provide UI label that excludes user id and pw
+    mongoURLLabel += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
+    mongoURL += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
+  }
+}
+var db = null,
+  dbDetails = new Object();
+
+var initDb = function (callback) {
+  if (mongoURL == null) return;
+
+  var mongodb = require('mongodb');
+  if (mongodb == null) return;
+
+  mongodb.connect(mongoURL, function (err, conn) {
+    if (err) {
+      callback(err);
+      return;
+    }
+
+    db = conn;
+    dbDetails.databaseName = db.databaseName;
+    dbDetails.url = mongoURLLabel;
+    dbDetails.type = 'MongoDB';
+
+    console.log('Connected to MongoDB at: %s', mongoURL);
+  });
+};
 
 const conn = mysql.createConnection({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
+
+  host: process.env.OPENSHIFT_MYSQL_DB_HOST || 'localhost',
+  port: process.env.OPENSHIFT_MYSQL_DB_PORT || '3306',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS || '',
   database: 'digital_store',
 
 });
@@ -26,6 +87,7 @@ conn.connect((err) => {
   if (err) return err;
   console.log('Mysql Connected...');
 })
+
 
 app.get('/', (req, res) => res.send('Hello World!!!!!'))
 
@@ -38,9 +100,9 @@ app.get('/api/converter', (req, res) => {
     console.log(results);
   });
 
+
 })
 
-// add speech 
 app.post('/api/converter/', (req, res) => {
 
   const result = validateSpeechdata(req.body)
@@ -48,8 +110,8 @@ app.post('/api/converter/', (req, res) => {
   console.log(result);
 
   if (result.error) {
-    res.status(400).send(result.error.details[0].message)
-    return
+      res.status(400).send(result.error.details[0].message)
+      return
   }
 
   const file_id = req.body.file_id;
@@ -60,29 +122,29 @@ app.post('/api/converter/', (req, res) => {
 
   main(server_path).then(function (data) {
 
-    setTimeout(function () {
+      setTimeout(function () {
 
-      let sql = "INSERT INTO digital SET file_description='" + data + "', file_path='" + server_path + "', file_id='" + file_id + "',latitude='" + latitude + "', longitude='" + longitude + "',status='Inserted' ";
-      let query = conn.query(sql, (err, results) => {
-        if (err) return err;
-        console.log(results)
-      })
+          let sql = "INSERT INTO digital SET file_description='" + data + "', file_path='" + server_path + "', file_id='" + file_id + "',latitude='" + latitude + "', longitude='" + longitude + "',status='Inserted' ";
+          let query = conn.query(sql, (err, results) => {
+              if (err) return err;
+              console.log(results)
+          })
 
-    }, 1)
+      }, 1)
 
   }).catch(console.error)
 
   res.send("the audio has been transcribed as  ")
 
-})
+});
 
 function validateSpeechdata(name) {
   const schema = {
-    name: Joi.string().min(3).required(),
-    file_id: Joi.string().min(3).required(),
-    file_path: Joi.string().min(3).required(),
-    longitude: Joi.string().min(3).required(),
-    latitude: Joi.string().min(3).required(),
+      name: Joi.string().min(3).required(),
+      file_id: Joi.string().min(3).required(),
+      file_path: Joi.string().min(3).required(),
+      longitude: Joi.string().min(3).required(),
+      latitude: Joi.string().min(3).required(),
   };
   return Joi.validate(name, schema);
 
@@ -104,32 +166,38 @@ async function main(filename) {
 
   // The audio file's encoding, sample rate in hertz, and BCP-47 language code
   const audio = {
-    content: audioBytes,
+      content: audioBytes,
   };
   const config = {
 
-    languageCode: 'en-US',
-    audioChannelCount: 1,
-    enableSeparateRecognitionPerChannel: true,
-    enableWordTimeOffsets: true
+      languageCode: 'en-US',
+      audioChannelCount: 1,
+      enableSeparateRecognitionPerChannel: true,
+      enableWordTimeOffsets: true
   };
   const request = {
-    audio: audio,
-    config: config,
+      audio: audio,
+      config: config,
   };
 
   // Detects speech in the audio file
   const [response] = await client.recognize(request);
   const transcription = response.results
-    .map(result => result.alternatives[0].transcript)
-    .join('\n');
+      .map(result => result.alternatives[0].transcript)
+      .join('\n');
   console.log(`Transcription: ${transcription}`);
   return transcription;
 }
+
+
 // error handling
 app.use(function (err, req, res, next) {
   console.error(err.stack);
   res.status(500).send('Something bad happened!');
+});
+
+initDb(function (err) {
+  console.log('Error connecting to Mongo. Message:\n' + err);
 });
 
 app.listen(port, ip);
