@@ -27,9 +27,7 @@ conn.connect((err) => {
   console.log('Mysql Connected...');
 })
 
-
 app.get('/', (req, res) => res.send('Hello World!!!!!'))
-
 
 app.get('/api/converter', (req, res) => {
 
@@ -39,7 +37,6 @@ app.get('/api/converter', (req, res) => {
     res.send(results);
     console.log(results);
   });
-
 
 })
 
@@ -55,28 +52,21 @@ app.post('/api/converter/', (req, res) => {
     return
   }
 
-
   const file_id = req.body.file_id;
   const file_path = req.body.file_path;
   const latitude = req.body.latitude;
   const longitude = req.body.longitude;
-
   const server_path = '../phonerecording/' + file_path;
-
 
   main(server_path).then(function (data) {
 
-
     setTimeout(function () {
-
-
 
       let sql = "INSERT INTO digital SET file_description='" + data + "', file_path='" + server_path + "', file_id='" + file_id + "',latitude='" + latitude + "', longitude='" + longitude + "',status='Inserted' ";
       let query = conn.query(sql, (err, results) => {
         if (err) return err;
         console.log(results)
       })
-
 
     }, 1)
 
@@ -134,14 +124,8 @@ async function main(filename) {
     .map(result => result.alternatives[0].transcript)
     .join('\n');
   console.log(`Transcription: ${transcription}`);
-
-
   return transcription;
 }
-
-
-//update speech data
-
 // error handling
 app.use(function (err, req, res, next) {
   console.error(err.stack);

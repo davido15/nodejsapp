@@ -6,6 +6,7 @@
   "dependencies": {
     "chai": "^3.5.0",
     "chai-http": "^2.0.1",
+    "cors": "^2.8.5",
     "ejs": "^2.4.1",
     "express": "^4.13.4",
     "joi": "^17.3.0",
