@@ -1,27 +1,29 @@
 //  OpenShift sample Node application
 var express = require('express'),
-    app     = express();
+  app = express();
 
-const mysql = require('mysql'); 
+const mysql = require('mysql');
 const Joi = require('joi');
 const cors = require('cors');
-    
-Object.assign=require('object-assign')
+
+Object.assign = require('object-assign')
 
 app.use(express.json());
+var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
+  ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || 'localhost';
 
 const conn = mysql.createConnection({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
-  database: 'digital_store' ,
+  database: 'digital_store',
 
 });
- 
+
 //connect to database
-conn.connect((err) =>{
-  if(err) return err;
+conn.connect((err) => {
+  if (err) return err;
   console.log('Mysql Connected...');
 })
 
@@ -30,25 +32,25 @@ app.get('/', (req, res) => res.send('Hello World!!!!!'))
 
 
 app.get('/api/converter', (req, res) => {
-  
+
   let sql = "SELECT * FROM digital";
   let query = conn.query(sql, (err, results) => {
-    if(err) return res.send(err);
+    if (err) return res.send(err);
     res.send(results);
     console.log(results);
-    });
+  });
 
 
 })
 
 // add speech 
-app.post('/api/converter/', (req,res) => {
+app.post('/api/converter/', (req, res) => {
 
-const result = validateSpeechdata(req.body)
+  const result = validateSpeechdata(req.body)
 
-console.log(result);
+  console.log(result);
 
-  if(result.error){
+  if (result.error) {
     res.status(400).send(result.error.details[0].message)
     return
   }
@@ -56,41 +58,41 @@ console.log(result);
 
   const file_id = req.body.file_id;
   const file_path = req.body.file_path;
-  const latitude  =  req.body.latitude;
-  const longitude =  req.body.longitude;
- 
- const server_path= '../phonerecording/'+file_path;
+  const latitude = req.body.latitude;
+  const longitude = req.body.longitude;
+
+  const server_path = '../phonerecording/' + file_path;
 
 
-  main(server_path).then(function(data){
- 
+  main(server_path).then(function (data) {
 
-    setTimeout( function(){
-  
-     
-  
-      let sql = "INSERT INTO digital SET file_description='"+data+"', file_path='"+server_path+"', file_id='"+file_id+"',latitude='"+latitude+"', longitude='"+longitude+"',status='Inserted' ";
+
+    setTimeout(function () {
+
+
+
+      let sql = "INSERT INTO digital SET file_description='" + data + "', file_path='" + server_path + "', file_id='" + file_id + "',latitude='" + latitude + "', longitude='" + longitude + "',status='Inserted' ";
       let query = conn.query(sql, (err, results) => {
-        if(err) return err;
+        if (err) return err;
         console.log(results)
       })
-       
-        
-    },1)
-  
+
+
+    }, 1)
+
   }).catch(console.error)
 
   res.send("the audio has been transcribed as  ")
 
 })
 
-function validateSpeechdata(name){
+function validateSpeechdata(name) {
   const schema = {
-                  name: Joi.string().min(3).required() , 
-                  file_id: Joi.string().min(3).required(),
-                  file_path: Joi.string().min(3).required(),
-                  longitude: Joi.string().min(3).required(),
-                  latitude: Joi.string().min(3).required(),
+    name: Joi.string().min(3).required(),
+    file_id: Joi.string().min(3).required(),
+    file_path: Joi.string().min(3).required(),
+    longitude: Joi.string().min(3).required(),
+    latitude: Joi.string().min(3).required(),
   };
   return Joi.validate(name, schema);
 
@@ -115,7 +117,7 @@ async function main(filename) {
     content: audioBytes,
   };
   const config = {
-  
+
     languageCode: 'en-US',
     audioChannelCount: 1,
     enableSeparateRecognitionPerChannel: true,
@@ -132,7 +134,7 @@ async function main(filename) {
     .map(result => result.alternatives[0].transcript)
     .join('\n');
   console.log(`Transcription: ${transcription}`);
-  
+
 
   return transcription;
 }
@@ -141,16 +143,12 @@ async function main(filename) {
 //update speech data
 
 // error handling
-app.use(function(err, req, res, next){
+app.use(function (err, req, res, next) {
   console.error(err.stack);
   res.status(500).send('Something bad happened!');
-});
-
-initDb(function(err){
-  console.log('Error connecting to Mongo. Message:\n'+err);
 });
 
 app.listen(port, ip);
 console.log('Server running on http://%s:%s', ip, port);
 
-module.exports = app ;
+module.exports = app;
