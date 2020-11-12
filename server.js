@@ -104,57 +104,6 @@ app.get('/api/converter', (req, res) => {
 
 
 
-function validateSpeechdata(name) {
-  const schema = {
-      name: Joi.string().min(3).required(),
-      file_id: Joi.string().min(3).required(),
-      file_path: Joi.string().min(3).required(),
-      longitude: Joi.string().min(3).required(),
-      latitude: Joi.string().min(3).required(),
-  };
-  return Joi.validate(name, schema);
-
-}
-async function main(filename) {
-  // Imports the Google Cloud client library
-  const speech = require('@google-cloud/speech');
-  const fs = require('fs');
-
-  // Creates a client
-  const client = new speech.SpeechClient();
-
-  // The name of the audio file to transcribe
-  const fileName = filename;
-
-  // Reads a local audio file and converts it to base64
-  const file = fs.readFileSync(fileName);
-  const audioBytes = file.toString('base64');
-
-  // The audio file's encoding, sample rate in hertz, and BCP-47 language code
-  const audio = {
-      content: audioBytes,
-  };
-  const config = {
-
-      languageCode: 'en-US',
-      audioChannelCount: 1,
-      enableSeparateRecognitionPerChannel: true,
-      enableWordTimeOffsets: true
-  };
-  const request = {
-      audio: audio,
-      config: config,
-  };
-
-  // Detects speech in the audio file
-  const [response] = await client.recognize(request);
-  const transcription = response.results
-      .map(result => result.alternatives[0].transcript)
-      .join('\n');
-  console.log(`Transcription: ${transcription}`);
-  return transcription;
-}
-
 
 // error handling
 app.use(function (err, req, res, next) {
