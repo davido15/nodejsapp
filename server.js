@@ -73,12 +73,11 @@ var initDb = function (callback) {
 };
 
 const conn = mysql.createConnection({
-
-    host: process.env.OPENSHIFT_MYSQL_DB_HOST || 'localhost',
-    port: process.env.OPENSHIFT_MYSQL_DB_PORT || '3306',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASS || '',
-    database: 'digital_store',
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: 'digital_store',
 
 });
 
