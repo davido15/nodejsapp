@@ -78,7 +78,7 @@ const conn = mysql.createConnection({
   host:  'localhost' ,
   port: '3306',
   user: 'admin',
-  password: 'heroloop,
+  password: 'heroloop',
   database: 'digital_store' ,
 
 });
