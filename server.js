@@ -3,75 +3,12 @@ var express = require('express'),
     app     = express();
 
 const mysql = require('mysql'); 
+const Joi = require('joi');
+const cors = require('cors');
     
 Object.assign=require('object-assign')
 
 app.use(express.json());
-
-var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
-    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
-    mongoURLLabel = "";
-
-if (mongoURL == null) {
-  var mongoHost, mongoPort, mongoDatabase, mongoPassword, mongoUser;
-  // If using plane old env vars via service discovery
-  if (process.env.DATABASE_SERVICE_NAME) {
-    var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase();
-    mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'];
-    mongoPort = process.env[mongoServiceName + '_SERVICE_PORT'];
-    mongoDatabase = process.env[mongoServiceName + '_DATABASE'];
-    mongoPassword = process.env[mongoServiceName + '_PASSWORD'];
-    mongoUser = process.env[mongoServiceName + '_USER'];
-
-  // If using env vars from secret from service binding  
-  } else if (process.env.database_name) {
-    mongoDatabase = process.env.database_name;
-    mongoPassword = process.env.password;
-    mongoUser = process.env.username;
-    var mongoUriParts = process.env.uri && process.env.uri.split("//");
-    if (mongoUriParts.length == 2) {
-      mongoUriParts = mongoUriParts[1].split(":");
-      if (mongoUriParts && mongoUriParts.length == 2) {
-        mongoHost = mongoUriParts[0];
-        mongoPort = mongoUriParts[1];
-      }
-    }
-  }
-
-  if (mongoHost && mongoPort && mongoDatabase) {
-    mongoURLLabel = mongoURL = 'mongodb://';
-    if (mongoUser && mongoPassword) {
-      mongoURL += mongoUser + ':' + mongoPassword + '@';
-    }
-    // Provide UI label that excludes user id and pw
-    mongoURLLabel += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
-    mongoURL += mongoHost + ':' +  mongoPort + '/' + mongoDatabase;
-  }
-}
-var db = null,
-    dbDetails = new Object();
-
-var initDb = function(callback) {
-  if (mongoURL == null) return;
-
-  var mongodb = require('mongodb');
-  if (mongodb == null) return;
-
-  mongodb.connect(mongoURL, function(err, conn) {
-    if (err) {
-      callback(err);
-      return;
-    }
-
-    db = conn;
-    dbDetails.databaseName = db.databaseName;
-    dbDetails.url = mongoURLLabel;
-    dbDetails.type = 'MongoDB';
-
-    console.log('Connected to MongoDB at: %s', mongoURL);
-  });
-};
 
 const conn = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -103,6 +40,105 @@ app.get('/api/converter', (req, res) => {
 
 
 })
+
+// add speech 
+app.post('/api/converter/', (req,res) => {
+
+const result = validateSpeechdata(req.body)
+
+console.log(result);
+
+  if(result.error){
+    res.status(400).send(result.error.details[0].message)
+    return
+  }
+
+
+  const file_id = req.body.file_id;
+  const file_path = req.body.file_path;
+  const latitude  =  req.body.latitude;
+  const longitude =  req.body.longitude;
+ 
+ const server_path= '../phonerecording/'+file_path;
+
+
+  main(server_path).then(function(data){
+ 
+
+    setTimeout( function(){
+  
+     
+  
+      let sql = "INSERT INTO digital SET file_description='"+data+"', file_path='"+server_path+"', file_id='"+file_id+"',latitude='"+latitude+"', longitude='"+longitude+"',status='Inserted' ";
+      let query = conn.query(sql, (err, results) => {
+        if(err) return err;
+        console.log(results)
+      })
+       
+        
+    },1)
+  
+  }).catch(console.error)
+
+  res.send("the audio has been transcribed as  ")
+
+})
+
+function validateSpeechdata(name){
+  const schema = {
+                  name: Joi.string().min(3).required() , 
+                  file_id: Joi.string().min(3).required(),
+                  file_path: Joi.string().min(3).required(),
+                  longitude: Joi.string().min(3).required(),
+                  latitude: Joi.string().min(3).required(),
+  };
+  return Joi.validate(name, schema);
+
+}
+async function main(filename) {
+  // Imports the Google Cloud client library
+  const speech = require('@google-cloud/speech');
+  const fs = require('fs');
+
+  // Creates a client
+  const client = new speech.SpeechClient();
+
+  // The name of the audio file to transcribe
+  const fileName = filename;
+
+  // Reads a local audio file and converts it to base64
+  const file = fs.readFileSync(fileName);
+  const audioBytes = file.toString('base64');
+
+  // The audio file's encoding, sample rate in hertz, and BCP-47 language code
+  const audio = {
+    content: audioBytes,
+  };
+  const config = {
+  
+    languageCode: 'en-US',
+    audioChannelCount: 1,
+    enableSeparateRecognitionPerChannel: true,
+    enableWordTimeOffsets: true
+  };
+  const request = {
+    audio: audio,
+    config: config,
+  };
+
+  // Detects speech in the audio file
+  const [response] = await client.recognize(request);
+  const transcription = response.results
+    .map(result => result.alternatives[0].transcript)
+    .join('\n');
+  console.log(`Transcription: ${transcription}`);
+  
+
+  return transcription;
+}
+
+
+//update speech data
 
 // error handling
 app.use(function(err, req, res, next){
