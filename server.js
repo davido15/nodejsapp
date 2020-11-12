@@ -102,40 +102,7 @@ app.get('/api/converter', (req, res) => {
 
 })
 
-app.post('/api/converter/', (req, res) => {
 
-  const result = validateSpeechdata(req.body)
-
-  console.log(result);
-
-  if (result.error) {
-      res.status(400).send(result.error.details[0].message)
-      return
-  }
-
-  const file_id = req.body.file_id;
-  const file_path = req.body.file_path;
-  const latitude = req.body.latitude;
-  const longitude = req.body.longitude;
-  const server_path = '../phonerecording/' + file_path;
-
-  main(server_path).then(function (data) {
-
-      setTimeout(function () {
-
-          let sql = "INSERT INTO digital SET file_description='" + data + "', file_path='" + server_path + "', file_id='" + file_id + "',latitude='" + latitude + "', longitude='" + longitude + "',status='Inserted' ";
-          let query = conn.query(sql, (err, results) => {
-              if (err) return err;
-              console.log(results)
-          })
-
-      }, 1)
-
-  }).catch(console.error)
-
-  res.send("the audio has been transcribed as  ")
-
-});
 
 function validateSpeechdata(name) {
   const schema = {
