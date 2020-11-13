@@ -43,20 +43,13 @@ app.get('/api/converter', (req, res) => {
 // add speech 
 app.post('/api/converter/', (req, res) => {
 
-  const result = validateSpeechdata(req.body)
-
-  console.log(result);
-
-  if (result.error) {
-    res.status(400).send(result.error.details[0].message)
-    return
-  }
+ 
 
   const file_id = req.body.file_id;
   const file_path = req.body.file_path;
   const latitude = req.body.latitude;
   const longitude = req.body.longitude;
-  const server_path = '../phonerecording/' + file_path;
+  const server_path =  req.body.file_path;
 
   main(server_path).then(function (data) {
 
