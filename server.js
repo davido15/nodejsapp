@@ -9,14 +9,16 @@ const cors = require('cors');
 Object.assign = require('object-assign')
 
 app.use(express.json());
+process.env.GOOGLE_APPLICATION_CREDENTIALS = 'credentials.json';
+console.log(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
   ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP ||  '0.0.0.0';
 
 const conn = mysql.createConnection({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || '3306',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS || '',
   database: 'digital_store',
 
 });
@@ -43,8 +45,15 @@ app.get('/api/converter', (req, res) => {
 // add speech 
 app.post('/api/converter/', (req, res) => {
 
- 
+  const result = validateSpeechdata(req.body);
 
+  console.log(result);
+  
+    if(result.error){
+      res.status(400).send(result.error.details[0].message)
+      return
+    }
+ 
   const file_id = req.body.file_id;
   const file_path = req.body.file_path;
   const latitude = req.body.latitude;
@@ -68,16 +77,26 @@ app.post('/api/converter/', (req, res) => {
   res.send("the audio has been transcribed as  ")
 
 })
-
-function validateSpeechdata(name) {
+function responseValidate(response) {
   const schema = {
+    name: Joi.objectId().required(),
+    response: Joi.string().min(3).max(512).required()
+  };
+
+  return Joi.validate(response, schema);
+}
+function validateSpeechdata(name) {
+ 
+
+  const schema = Joi.object({
     name: Joi.string().min(3).required(),
     file_id: Joi.string().min(3).required(),
     file_path: Joi.string().min(3).required(),
     longitude: Joi.string().min(3).required(),
     latitude: Joi.string().min(3).required(),
-  };
-  return Joi.validate(name, schema);
+  });
+
+  return schema.validate(name);
 
 }
 async function main(filename) {
