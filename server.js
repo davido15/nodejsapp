@@ -23,7 +23,7 @@ var urlencodeParser =bodyParser.urlencoded({extended:false})
 process.env.GOOGLE_APPLICATION_CREDENTIALS = 'credentials.json';
 
 console.log(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 3004,
+var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
   ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP ||  'localhost';
 
 const conn = mysql.createConnection({
