@@ -1,18 +1,30 @@
 //  OpenShift sample Node application
-var express = require('express'),
+var express = require('express');
+const  req= require('request');
   app = express();
-
+  var bodyParser = require('body-parser');
 const mysql = require('mysql');
 const Joi = require('joi');
 const cors = require('cors');
+const twilio = require('twilio');
+
+  
+// use it before all route definitions
+app.use(cors({origin: '*'}));
+const ClientCapability = twilio.jwt.ClientCapability;
+const VoiceResponse = twilio.twiml.VoiceResponse;
 
 Object.assign = require('object-assign')
 
 app.use(express.json());
+var jsonParser= bodyParser.json();
+var urlencodeParser =bodyParser.urlencoded({extended:false})
+
 process.env.GOOGLE_APPLICATION_CREDENTIALS = 'credentials.json';
+
 console.log(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-  ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP ||  '0.0.0.0';
+  ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP ||  'localhost';
 
 const conn = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
@@ -29,7 +41,50 @@ conn.connect((err) => {
   console.log('Mysql Connected...');
 })
 
-app.get('/', (req, res) => res.send('Hello World!!!!!'))
+
+
+app.get('/', (req, res) => {
+  require('dotenv').config();
+  const accountSid= process.env.TWILIO_ACCOUNT_SID;
+  console.log(accountSid);
+  res.send('Hello World!!!!!')}
+  )
+
+
+// Generate a Twilio Client capability token
+app.get('/token', (request, response) => {
+  require('dotenv').config();
+  const capability = new ClientCapability({
+    accountSid: process.env.TWILIO_ACCOUNT_SID,
+    authToken: process.env.TWILIO_AUTH_TOKEN,
+  });
+
+  capability.addScope(
+    new ClientCapability.OutgoingClientScope({
+      applicationSid: process.env.TWILIO_TWIML_APP_SID})
+  );
+
+  const token = capability.toJwt();
+
+  // Include token in a JSON response
+  response.send({
+    token: token,
+  });
+});
+
+// Create TwiML for outbound calls
+app.post('/voice',urlencodeParser, (req, res) => {
+  require('dotenv').config();
+
+  let voiceResponse = new VoiceResponse();
+
+  voiceResponse.dial({
+    callerId: process.env.TWILIO_NUMBER,
+  }, req.body.number);
+  res.type('text/xml');
+  res.send(voiceResponse.toString());
+});
+
 
 app.get('/api/converter', (req, res) => {
 
